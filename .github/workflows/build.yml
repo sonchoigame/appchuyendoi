@@ -1,0 +1,38 @@
+name: Build unsigned IPA
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  ios:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate Xcode project
+        run: xcodegen generate
+      - name: Build for iPhone (unsigned)
+        run: |
+          set -euo pipefail
+          xcodebuild -project NSMOD3105.xcodeproj \
+            -scheme NSMOD3105 \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath "$RUNNER_TEMP/Derived" \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+      - name: Package unsigned IPA
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/ipa/Payload"
+          cp -R "$RUNNER_TEMP/Derived/Build/Products/Release-iphoneos/NSMOD3105.app" "$RUNNER_TEMP/ipa/Payload/"
+          cd "$RUNNER_TEMP/ipa"
+          /usr/bin/zip -qry "$GITHUB_WORKSPACE/NSMOD3105-unsigned.ipa" Payload
+      - uses: actions/upload-artifact@v4
+        with:
+          name: NSMOD3105-unsigned-IPA
+          path: NSMOD3105-unsigned.ipa
+          if-no-files-found: error
