@@ -204,7 +204,7 @@ private struct HomeScreen: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 22) {
+            VStack(alignment: .leading, spacing: 18) {
                 Header(subtitle: "OFFICIAL IOS UTILITY")
                     .padding(.top, 12)
 
@@ -216,7 +216,7 @@ private struct HomeScreen: View {
                                 .tracking(2.1)
                                 .foregroundStyle(Theme.accent)
                             Text("Chuyển đổi\nfile .3105")
-                                .font(.system(size: 31, weight: .heavy, design: .rounded))
+                                .font(.system(size: 27, weight: .heavy, design: .rounded))
                                 .foregroundStyle(.white)
                             Text("Đổi Bundle ID an toàn • Giữ nguyên dữ liệu patch")
                                 .font(.system(size: 13))
@@ -227,36 +227,34 @@ private struct HomeScreen: View {
                         ZStack {
                             Circle()
                                 .stroke(Theme.accent.opacity(0.28), lineWidth: 1.5)
-                                .frame(width: 78, height: 78)
+                                .frame(width: 53, height: 53)
                                 .scaleEffect(pulse ? 1.2 : 0.86)
                                 .opacity(pulse ? 0.3 : 0.8)
                             Circle()
                                 .fill(Theme.accent.opacity(0.12))
-                                .frame(width: 82, height: 82)
+                                .frame(width: 56, height: 56)
                             Image(systemName: "arrow.triangle.2.circlepath")
-                                .font(.system(size: 31, weight: .medium))
+                                .font(.system(size: 25, weight: .medium))
                                 .foregroundStyle(Theme.accent)
                                 .rotationEffect(.degrees(pulse ? 360 : 0))
                         }
-                        .frame(width: 92)
+                        .frame(width: 60)
                     }
                     PrimaryButton(text: "BẮT ĐẦU CHUYỂN ĐỔI", icon: "arrow.left.arrow.right", action: onConvert)
                 }
                 .modifier(GlowCard())
-                .padding(.top, 5)
+                .padding(.top, 2)
 
                 VStack(alignment: .leading, spacing: 11) {
                     Text("KHÁM PHÁ NSMOD")
                         .font(.system(size: 11, weight: .bold))
                         .tracking(1.8)
                         .foregroundStyle(Theme.muted)
-                    HStack(spacing: 10) {
-                        HomeLink(symbol: "globe", title: "Web Crack", detail: "Trang chủ", tint: Theme.accent) {
-                            openURL(AppLinks.webCrack)
-                        }
-                        HomeLink(symbol: "paperplane.fill", title: "Telegram", detail: "Kênh chính", tint: Color(red: 0.30, green: 0.77, blue: 1)) {
-                            openURL(AppLinks.telegram)
-                        }
+                    HomeLink(symbol: "globe", title: "Web Crack", detail: "Trang web chính thức", tint: Theme.accent) {
+                        openURL(AppLinks.webCrack)
+                    }
+                    HomeLink(symbol: "paperplane.fill", title: "Telegram", detail: "@sonchoigame23", tint: Color(red: 0.30, green: 0.77, blue: 1)) {
+                        openURL(AppLinks.telegram)
                     }
                     HomeLink(symbol: "play.rectangle.fill", title: "TikTok", detail: "@pettersiuto", tint: Color(red: 1, green: 0.35, blue: 0.54)) {
                         openURL(AppLinks.tikTok)
@@ -269,8 +267,9 @@ private struct HomeScreen: View {
                     .frame(maxWidth: .infinity)
                     .padding(.top, 4)
             }
-            .padding(.horizontal, 19)
+            .padding(.horizontal, 16)
             .padding(.bottom, 20)
+            .frame(maxWidth: 540)
         }
         .scrollIndicators(.hidden)
         .onAppear {
@@ -314,8 +313,6 @@ private struct HomeLink: View {
 private struct ConverterScreen: View {
     @ObservedObject var model: ConverterModel
     @State private var showImporter = false
-    @State private var showExporter = false
-    @State private var document: PatchDocument?
     @FocusState private var passwordFocused: Bool
     @FocusState private var bundleFocused: Bool
 
@@ -367,6 +364,7 @@ private struct ConverterScreen: View {
                                     in: RoundedRectangle(cornerRadius: 13))
                     }
                     .buttonStyle(TapScale())
+                    .disabled(model.busy)
 
                     fieldLabel("02  MẬT KHẨU GỐC")
                     SecureField("Mật khẩu của member", text: $model.sourcePassword)
@@ -377,11 +375,14 @@ private struct ConverterScreen: View {
                         .autocorrectionDisabled()
                         .modifier(InputStyle())
                     PrimaryButton(text: "ĐỌC FILE VÀ XÁC MINH", icon: "lock.open.fill",
-                                  disabled: model.fileName.isEmpty) {
+                                  disabled: model.busy || model.rawFile == nil) {
                         dismissKeyboard()
                         model.read()
                     }
                     HStack(spacing: 7) {
+                        if model.busy {
+                            ProgressView().tint(Theme.accent)
+                        }
                         Image(systemName: model.loaded == nil ? "info.circle" : "checkmark.seal.fill")
                             .foregroundStyle(model.loaded == nil ? Theme.muted : .green)
                         Text(model.status)
@@ -409,7 +410,7 @@ private struct ConverterScreen: View {
                         }
                         .modifier(InputStyle())
                     }
-                    .disabled(model.loaded == nil)
+                    .disabled(model.busy || model.loaded == nil)
 
                     fieldLabel("04  BUNDLE ID MỚI")
                     TextField("Ví dụ: com.kgvn.nsmod", text: $model.newID)
@@ -428,14 +429,9 @@ private struct ConverterScreen: View {
                         .fixedSize(horizontal: false, vertical: true)
 
                     PrimaryButton(text: "XUẤT FILE .3105 MỚI", icon: "square.and.arrow.up.fill",
-                                  disabled: model.loaded == nil || model.newID.isEmpty) {
+                                  disabled: model.busy || model.loaded == nil || model.newID.isEmpty) {
                         dismissKeyboard()
-                        do {
-                            document = try model.createDocument()
-                            showExporter = true
-                        } catch {
-                            model.errorMessage = error.localizedDescription
-                        }
+                        model.prepareExport()
                     }
                     HStack {
                         Image(systemName: "lock.shield.fill")
@@ -445,8 +441,9 @@ private struct ConverterScreen: View {
                     .foregroundStyle(Theme.accent)
                 }.modifier(GlowCard())
             }
-            .padding(.horizontal, 19)
+            .padding(.horizontal, 16)
             .padding(.bottom, 24)
+            .frame(maxWidth: 540)
         }
         .scrollIndicators(.hidden)
         .scrollDismissesKeyboard(.interactively)
@@ -458,19 +455,22 @@ private struct ConverterScreen: View {
                     .fontWeight(.semibold)
             }
         }
-        .fileImporter(isPresented: $showImporter, allowedContentTypes: [.patch3105, .data]) { result in
-            switch result {
-            case .success(let url):
-                model.importFile(url)
-            case .failure(let error):
-                model.errorMessage = error.localizedDescription
-            }
+        .sheet(isPresented: $showImporter) {
+            PatchFilePicker(
+                onSelect: { url in
+                    showImporter = false
+                    model.importFile(url)
+                },
+                onCancel: { showImporter = false }
+            )
+            .ignoresSafeArea()
         }
-        .fileExporter(isPresented: $showExporter, document: document,
+        .fileExporter(isPresented: $model.showExporter, document: model.exportDocument,
                       contentType: .patch3105, defaultFilename: model.outputName) { result in
             if case .failure(let error) = result {
                 model.errorMessage = error.localizedDescription
             }
+            model.exportDocument = nil
         }
         .alert("NSMOD", isPresented: Binding(
             get: { model.errorMessage != nil },
