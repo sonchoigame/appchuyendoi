@@ -1,77 +1,128 @@
 import SwiftUI
 import UniformTypeIdentifiers
+import UIKit
 
-private enum Theme {
-    static let background = Color(red: 0.035, green: 0.060, blue: 0.114)
-    static let panel = Color(red: 0.083, green: 0.116, blue: 0.187)
-    static let border = Color.white.opacity(0.095)
-    static let accent = Color(red: 0.20, green: 0.69, blue: 1.0)
-    static let muted = Color(red: 0.60, green: 0.68, blue: 0.78)
+private enum NS {
+    static let bg = Color(red: 0.025, green: 0.015, blue: 0.05)
+    static let panel = Color(red: 0.073, green: 0.052, blue: 0.125)
+    static let field = Color(red: 0.073, green: 0.066, blue: 0.13)
+    static let purple = Color(red: 0.70, green: 0.36, blue: 1.0)
+    static let bright = Color(red: 0.90, green: 0.67, blue: 1.0)
+    static let muted = Color(red: 0.69, green: 0.67, blue: 0.78)
+    static let edge = Color(red: 0.49, green: 0.31, blue: 0.70)
+    static let gradient = LinearGradient(
+        colors: [Color(red: 0.39, green: 0.17, blue: 0.78),
+                 Color(red: 0.72, green: 0.30, blue: 0.97),
+                 Color(red: 0.44, green: 0.19, blue: 0.86)],
+        startPoint: .topLeading, endPoint: .bottomTrailing
+    )
 }
 
-private struct GlowCard: ViewModifier {
+private struct DarkBackdrop: View {
+    var body: some View {
+        ZStack {
+            NS.bg
+            RadialGradient(colors: [NS.purple.opacity(0.24), .clear],
+                           center: .topTrailing, startRadius: 10, endRadius: 400)
+            RadialGradient(colors: [NS.purple.opacity(0.11), .clear],
+                           center: .bottomLeading, startRadius: 35, endRadius: 380)
+        }
+        .ignoresSafeArea()
+    }
+}
+
+private struct NeonPanel: ViewModifier {
     func body(content: Content) -> some View {
         content
-            .padding(18)
-            .background(
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .fill(Theme.panel)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 22)
-                            .stroke(Theme.border, lineWidth: 1)
-                    )
-            )
+            .padding(16)
+            .background {
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .fill(NS.panel.opacity(0.96))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 24, style: .continuous)
+                            .stroke(NS.edge.opacity(0.70), lineWidth: 1.2)
+                    }
+                    .shadow(color: NS.purple.opacity(0.18), radius: 15, y: 5)
+            }
     }
 }
 
-private struct TapScale: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.975 : 1)
-            .animation(.easeOut(duration: 0.16), value: configuration.isPressed)
+private struct NeonField: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .padding(.horizontal, 14)
+            .frame(minHeight: 50)
+            .background(NS.field, in: RoundedRectangle(cornerRadius: 15, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 15, style: .continuous)
+                    .stroke(NS.edge.opacity(0.50), lineWidth: 1)
+            }
     }
 }
 
-private struct PrimaryButton: View {
-    let text: String
-    let icon: String
-    var disabled: Bool = false
+private struct NeonButton: View {
+    let title: String
+    let symbol: String
+    var enabled: Bool = true
     let action: () -> Void
+
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 10) {
-                Image(systemName: icon)
-                Text(text)
-                    .fontWeight(.bold)
-                Spacer(minLength: 0)
+            HStack(spacing: 11) {
+                Image(systemName: symbol)
+                    .font(.system(size: 16, weight: .bold))
+                Text(title)
+                    .font(.system(size: 13, weight: .heavy))
+                    .tracking(0.25)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+                Spacer(minLength: 2)
                 Image(systemName: "arrow.right")
-                    .font(.system(size: 13, weight: .bold))
+                    .font(.system(size: 14, weight: .bold))
             }
-            .font(.system(size: 15))
-            .foregroundStyle(Color.white)
-            .padding(.horizontal, 18)
+            .foregroundStyle(enabled ? .white : NS.muted)
+            .padding(.horizontal, 16)
             .frame(height: 54)
-            .background(
-                LinearGradient(
-                    colors: disabled ? [Color.gray, Color.gray] :
-                        [Theme.accent, Color(red: 0.10, green: 0.38, blue: 0.88)],
-                    startPoint: .topLeading, endPoint: .bottomTrailing
-                ),
-                in: RoundedRectangle(cornerRadius: 16)
-            )
+            .background {
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(enabled ? NS.gradient : LinearGradient(colors: [NS.field, NS.panel],
+                                                                 startPoint: .top, endPoint: .bottom))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(NS.bright.opacity(enabled ? 0.85 : 0.24), lineWidth: 1)
+                    }
+                    .shadow(color: NS.purple.opacity(enabled ? 0.40 : 0), radius: 13)
+            }
         }
-        .buttonStyle(TapScale())
-        .disabled(disabled)
-        .opacity(disabled ? 0.55 : 1)
+        .buttonStyle(.plain)
+        .disabled(!enabled)
     }
 }
 
-private enum Page: String, CaseIterable, Identifiable {
+private struct LabelStep: View {
+    let step: String
+    let title: String
+    var body: some View {
+        HStack(spacing: 8) {
+            Text(step)
+                .font(.system(size: 12, weight: .heavy, design: .rounded))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 8).padding(.vertical, 5)
+                .background(NS.gradient, in: RoundedRectangle(cornerRadius: 8))
+            Text(title)
+                .font(.system(size: 11, weight: .heavy))
+                .tracking(0.8)
+                .foregroundStyle(.white.opacity(0.90))
+        }
+    }
+}
+
+private enum MainTab: String, CaseIterable, Identifiable {
     case home = "Trang chủ"
     case convert = "Chuyển đổi"
     case settings = "Cài đặt"
     var id: String { rawValue }
-    var symbol: String {
+    var image: String {
         switch self {
         case .home: return "square.grid.2x2.fill"
         case .convert: return "arrow.left.arrow.right"
@@ -82,386 +133,312 @@ private enum Page: String, CaseIterable, Identifiable {
 
 struct ContentView: View {
     @StateObject private var model = ConverterModel()
-    @AppStorage("nsmod_has_opened_telegram") private var openedTelegram = false
-    @State private var page: Page = .home
+    @AppStorage("nsmod_has_opened_telegram") private var visitedTelegram = false
     @State private var showWelcome = false
     @State private var welcomeShownThisLaunch = false
+    @State private var selectedTab: MainTab = .convert
 
     var body: some View {
         ZStack {
-            Theme.background.ignoresSafeArea()
-            RadialGradient(
-                colors: [Theme.accent.opacity(0.12), .clear],
-                center: .topTrailing, startRadius: 20, endRadius: 420
-            ).ignoresSafeArea()
-
-            NavigationStack {
-                Group {
-                    switch page {
-                    case .home:
-                        HomeScreen(onConvert: {
-                            withAnimation(.easeInOut(duration: 0.22)) { page = .convert }
-                        })
-                    case .convert:
-                        ConverterScreen(model: model)
-                    case .settings:
-                        SettingsScreen()
-                    }
+            DarkBackdrop()
+            Group {
+                switch selectedTab {
+                case .home:
+                    HomeView(goConvert: { withAnimation(.easeInOut(duration: 0.22)) { selectedTab = .convert } })
+                case .convert:
+                    ConverterView(model: model)
+                case .settings:
+                    AboutView()
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color.clear)
-                .toolbar(.hidden, for: .navigationBar)
             }
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                HStack(spacing: 3) {
-                    ForEach(Page.allCases) { item in
-                        Button {
-                            withAnimation(.easeInOut(duration: 0.20)) { page = item }
-                        } label: {
-                            VStack(spacing: 5) {
-                                Image(systemName: item.symbol).font(.system(size: 18, weight: .semibold))
-                                Text(item.rawValue).font(.system(size: 10, weight: .medium))
-                            }
-                            .foregroundStyle(page == item ? Theme.accent : Theme.muted)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 55)
-                            .background(page == item ? Theme.accent.opacity(0.10) : .clear,
-                                        in: RoundedRectangle(cornerRadius: 15))
-                        }.buttonStyle(.plain)
-                    }
-                }
-                .padding(7)
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 22))
-                .overlay(RoundedRectangle(cornerRadius: 22).stroke(Theme.border))
-                .padding(.horizontal, 16)
-                .padding(.bottom, 6)
-            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .safeAreaInset(edge: .bottom, spacing: 0) { bottomTabs }
 
             if showWelcome {
-                Color.black.opacity(0.74).ignoresSafeArea()
-                    .transition(.opacity)
+                Color.black.opacity(0.82).ignoresSafeArea()
                     .zIndex(2)
-                WelcomePopup(canClose: openedTelegram, openTelegram: {
-                    openedTelegram = true
-                    UIApplication.shared.open(AppLinks.telegram)
-                }, dismiss: {
-                    withAnimation(.spring(response: 0.42, dampingFraction: 0.86)) {
-                        showWelcome = false
-                    }
-                })
-                .padding(.horizontal, 24)
-                .transition(.asymmetric(
-                    insertion: .scale(scale: 0.86).combined(with: .opacity),
-                    removal: .scale(scale: 0.96).combined(with: .opacity)
-                ))
-                .zIndex(3)
+                    .transition(.opacity)
+                WelcomeView(canClose: visitedTelegram,
+                            openTelegram: {
+                                withAnimation(.easeOut(duration: 0.2)) { visitedTelegram = true }
+                                UIApplication.shared.open(Links.telegram)
+                            },
+                            close: {
+                                withAnimation(.spring(response: 0.4, dampingFraction: 0.84)) {
+                                    showWelcome = false
+                                }
+                            })
+                    .padding(.horizontal, 22)
+                    .zIndex(3)
+                    .transition(.scale(scale: 0.87).combined(with: .opacity))
             }
         }
+        .preferredColorScheme(.dark)
         .onAppear {
-            // Show only on a cold app launch, never after switching to Telegram,
-            // returning from Files, unlocking the phone, or app multitasking.
             guard !welcomeShownThisLaunch else { return }
             welcomeShownThisLaunch = true
-            withAnimation(.spring(response: 0.48, dampingFraction: 0.85)) {
+            withAnimation(.spring(response: 0.46, dampingFraction: 0.85)) {
                 showWelcome = true
             }
         }
     }
-}
 
-private struct Header: View {
-    let subtitle: String
-    var body: some View {
-        HStack {
-            HStack(spacing: 10) {
-                Image(systemName: "bolt.shield.fill")
-                    .font(.system(size: 19, weight: .bold))
-                    .foregroundStyle(Theme.accent)
-                    .frame(width: 43, height: 43)
-                    .background(Theme.accent.opacity(0.12), in: RoundedRectangle(cornerRadius: 14))
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("NSMOD").font(.system(size: 23, weight: .black, design: .rounded))
-                        .tracking(1.3)
-                    Text(subtitle).font(.system(size: 11)).foregroundStyle(Theme.muted)
-                }
-            }
-            Spacer()
-            Text("3105")
-                .font(.system(size: 11, weight: .bold, design: .monospaced))
-                .padding(.horizontal, 12).padding(.vertical, 8)
-                .foregroundStyle(Theme.accent)
-                .background(Theme.accent.opacity(0.11), in: Capsule())
-        }
-        .foregroundStyle(.white)
-    }
-}
-
-private struct HomeScreen: View {
-    let onConvert: () -> Void
-    @Environment(\.openURL) private var openURL
-    @State private var pulse = false
-
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                Header(subtitle: "OFFICIAL IOS UTILITY")
-                    .padding(.top, 12)
-
-                VStack(alignment: .leading, spacing: 16) {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("NEXT GEN TOOL")
-                                .font(.system(size: 11, weight: .bold))
-                                .tracking(2.1)
-                                .foregroundStyle(Theme.accent)
-                            Text("Chuyển đổi\nfile .3105")
-                                .font(.system(size: 27, weight: .heavy, design: .rounded))
-                                .foregroundStyle(.white)
-                            Text("Đổi Bundle ID an toàn • Giữ nguyên dữ liệu patch")
-                                .font(.system(size: 13))
-                                .foregroundStyle(Theme.muted)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                        Spacer(minLength: 0)
-                        ZStack {
-                            Circle()
-                                .stroke(Theme.accent.opacity(0.28), lineWidth: 1.5)
-                                .frame(width: 53, height: 53)
-                                .scaleEffect(pulse ? 1.2 : 0.86)
-                                .opacity(pulse ? 0.3 : 0.8)
-                            Circle()
-                                .fill(Theme.accent.opacity(0.12))
-                                .frame(width: 56, height: 56)
-                            Image(systemName: "arrow.triangle.2.circlepath")
-                                .font(.system(size: 25, weight: .medium))
-                                .foregroundStyle(Theme.accent)
-                                .rotationEffect(.degrees(pulse ? 360 : 0))
-                        }
-                        .frame(width: 60)
+    private var bottomTabs: some View {
+        HStack(spacing: 4) {
+            ForEach(MainTab.allCases) { tab in
+                Button {
+                    withAnimation(.easeInOut(duration: 0.20)) { selectedTab = tab }
+                } label: {
+                    VStack(spacing: 4) {
+                        Image(systemName: tab.image).font(.system(size: 19, weight: .semibold))
+                        Text(tab.rawValue).font(.system(size: 11, weight: .semibold))
                     }
-                    PrimaryButton(text: "BẮT ĐẦU CHUYỂN ĐỔI", icon: "arrow.left.arrow.right", action: onConvert)
-                }
-                .modifier(GlowCard())
-                .padding(.top, 2)
-
-                VStack(alignment: .leading, spacing: 11) {
-                    Text("KHÁM PHÁ NSMOD")
-                        .font(.system(size: 11, weight: .bold))
-                        .tracking(1.8)
-                        .foregroundStyle(Theme.muted)
-                    HomeLink(symbol: "globe", title: "Web Crack", detail: "Trang web chính thức", tint: Theme.accent) {
-                        openURL(AppLinks.webCrack)
-                    }
-                    HomeLink(symbol: "paperplane.fill", title: "Telegram", detail: "@sonchoigame23", tint: Color(red: 0.30, green: 0.77, blue: 1)) {
-                        openURL(AppLinks.telegram)
-                    }
-                    HomeLink(symbol: "play.rectangle.fill", title: "TikTok", detail: "@pettersiuto", tint: Color(red: 1, green: 0.35, blue: 0.54)) {
-                        openURL(AppLinks.tikTok)
-                    }
-                }
-
-                Text("Built for precision  •  NSMOD")
-                    .font(.system(size: 11))
-                    .foregroundStyle(Theme.muted.opacity(0.7))
+                    .foregroundStyle(tab == selectedTab ? NS.bright : NS.muted)
                     .frame(maxWidth: .infinity)
-                    .padding(.top, 4)
+                    .frame(height: 60)
+                    .background {
+                        if tab == selectedTab {
+                            RoundedRectangle(cornerRadius: 18)
+                                .fill(NS.purple.opacity(0.25))
+                                .overlay {
+                                    RoundedRectangle(cornerRadius: 18)
+                                        .stroke(NS.edge.opacity(0.7), lineWidth: 1)
+                                }
+                        }
+                    }
+                }
+                .buttonStyle(.plain)
             }
-            .padding(.horizontal, 16)
-            .padding(.bottom, 20)
-            .frame(maxWidth: 540)
         }
-        .scrollIndicators(.hidden)
-        .onAppear {
-            pulse = false
-            withAnimation(.linear(duration: 10).repeatForever(autoreverses: false)) {
-                pulse = true
-            }
+        .padding(7)
+        .background {
+            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                .fill(NS.panel.opacity(0.98))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 26)
+                        .stroke(NS.edge.opacity(0.53), lineWidth: 1)
+                }
         }
+        .padding(.horizontal, 14)
+        .padding(.top, 6)
+        .padding(.bottom, 4)
     }
 }
 
-private struct HomeLink: View {
-    let symbol: String
-    let title: String
-    let detail: String
-    let tint: Color
-    let action: () -> Void
+private enum Links {
+    static let telegram = URL(string: "https://t.me/sonchoigame23")!
+    static let tikTok = URL(string: "https://www.tiktok.com/@pettersiuto")!
+    static let crack = URL(string: "https://nsmod.github.io/nsmodcrack")!
+}
 
+private struct BrandHeader: View {
     var body: some View {
-        Button(action: action) {
-            HStack(spacing: 12) {
-                Image(systemName: symbol)
-                    .font(.system(size: 20, weight: .medium))
-                    .foregroundStyle(tint)
-                    .frame(width: 42, height: 42)
-                    .background(tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 13))
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(title).font(.system(size: 14, weight: .bold)).foregroundStyle(.white)
-                    Text(detail).font(.system(size: 11)).foregroundStyle(Theme.muted)
+        ZStack(alignment: .leading) {
+            Image("HeaderArt")
+                .resizable()
+                .scaledToFill()
+                .frame(maxWidth: .infinity)
+                .frame(height: 150)
+                .clipped()
+                .overlay {
+                    LinearGradient(colors: [NS.bg.opacity(0.87), NS.bg.opacity(0.22)],
+                                   startPoint: .leading, endPoint: .trailing)
+                }
+            HStack(spacing: 10) {
+                Image("NSMODLogo")
+                    .resizable().aspectRatio(contentMode: .fill)
+                    .frame(width: 65, height: 65).clipped()
+                    .clipShape(RoundedRectangle(cornerRadius: 17))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 17).stroke(NS.bright, lineWidth: 1.5)
+                    }
+                    .shadow(color: NS.purple.opacity(0.48), radius: 9)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("NSMOD")
+                        .font(.system(size: 32, weight: .black, design: .serif))
+                        .tracking(0.3)
+                        .foregroundStyle(.white)
+                        .shadow(color: NS.purple, radius: 8)
+                    Text("3105 BUNDLE CONVERTER")
+                        .font(.system(size: 10, weight: .bold))
+                        .tracking(1.0)
+                        .foregroundStyle(NS.bright)
                 }
                 Spacer(minLength: 0)
-                Image(systemName: "arrow.up.right").font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(Theme.muted)
             }
-            .modifier(GlowCard())
+            .padding(.horizontal, 14)
         }
-        .buttonStyle(TapScale())
+        .frame(height: 150)
+        .clipShape(RoundedRectangle(cornerRadius: 14))
     }
 }
 
-private struct ConverterScreen: View {
+private struct ConverterView: View {
     @ObservedObject var model: ConverterModel
-    @State private var showImporter = false
-    @FocusState private var passwordFocused: Bool
-    @FocusState private var bundleFocused: Bool
+    @State private var showPicker = false
+    @State private var passwordVisible = false
+    @FocusState private var focusedField: Field?
+    private enum Field: Hashable { case password, bundle }
 
-    private func dismissKeyboard() {
-        passwordFocused = false
-        bundleFocused = false
-    }
+    private func dismissKeyboard() { focusedField = nil }
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                Header(subtitle: "3105 BUNDLE CONVERTER")
-                    .padding(.top, 12)
-
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Chuyển đổi 3105")
-                        .font(.system(size: 27, weight: .heavy, design: .rounded))
+            VStack(alignment: .leading, spacing: 15) {
+                BrandHeader()
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Chuyển Đổi File 3105")
+                        .font(.system(size: 27, weight: .black, design: .rounded))
+                        .minimumScaleFactor(0.78)
+                        .lineLimit(1)
                         .foregroundStyle(.white)
+                        .shadow(color: NS.purple.opacity(0.7), radius: 10)
                     Text("Đọc file • Đổi Bundle ID • Xuất bản mới")
                         .font(.system(size: 12))
-                        .foregroundStyle(Theme.muted)
+                        .foregroundStyle(NS.muted)
                 }
+                .padding(.horizontal, 4)
 
                 VStack(alignment: .leading, spacing: 15) {
-                    fieldLabel("01  TỆP PATCH .3105")
+                    LabelStep(step: "01", title: "TỆP PATCH .3105")
                     Button {
                         dismissKeyboard()
-                        showImporter = true
+                        showPicker = true
                     } label: {
                         HStack(spacing: 12) {
                             Image(systemName: "doc.zipper")
-                                .font(.system(size: 20))
-                                .foregroundStyle(Theme.accent)
+                                .font(.system(size: 25))
+                                .foregroundStyle(NS.bright)
+                                .frame(width: 35)
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(model.fileName.isEmpty ? "Chọn file .3105" : model.fileName)
-                                    .font(.system(size: 13, weight: .semibold))
-                                    .lineLimit(2)
+                                    .font(.system(size: 14, weight: .bold))
                                     .foregroundStyle(.white)
+                                    .lineLimit(2)
                                 Text("Chạm để mở ứng dụng Tệp")
                                     .font(.system(size: 11))
-                                    .foregroundStyle(Theme.muted)
+                                    .foregroundStyle(NS.muted)
                             }
                             Spacer()
                             Image(systemName: "folder")
-                                .foregroundStyle(Theme.accent)
+                                .foregroundStyle(NS.bright)
                         }
-                        .padding(14)
-                        .background(Theme.background.opacity(0.72),
-                                    in: RoundedRectangle(cornerRadius: 13))
+                        .padding(13)
+                        .background(NS.field, in: RoundedRectangle(cornerRadius: 15))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 15)
+                                .stroke(NS.edge.opacity(0.5), lineWidth: 1)
+                        }
                     }
-                    .buttonStyle(TapScale())
+                    .buttonStyle(.plain)
                     .disabled(model.busy)
 
-                    fieldLabel("02  MẬT KHẨU GỐC")
-                    SecureField("Mật khẩu của member", text: $model.sourcePassword)
-                        .focused($passwordFocused)
+                    LabelStep(step: "02", title: "MẬT KHẨU GỐC")
+                    HStack {
+                        Image(systemName: "lock.fill").foregroundStyle(NS.muted)
+                        Group {
+                            if passwordVisible {
+                                TextField("Nhập mật khẩu file .3105", text: $model.sourcePassword)
+                            } else {
+                                SecureField("Nhập mật khẩu file .3105", text: $model.sourcePassword)
+                            }
+                        }
+                        .focused($focusedField, equals: .password)
                         .submitLabel(.done)
                         .onSubmit(dismissKeyboard)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
-                        .modifier(InputStyle())
-                    PrimaryButton(text: "ĐỌC FILE VÀ XÁC MINH", icon: "lock.open.fill",
-                                  disabled: model.busy || model.rawFile == nil) {
+                        .font(.system(size: 14))
+                        .foregroundStyle(.white)
+                        Button { passwordVisible.toggle() } label: {
+                            Image(systemName: passwordVisible ? "eye" : "eye.slash")
+                                .foregroundStyle(NS.muted)
+                        }.buttonStyle(.plain)
+                    }
+                    .modifier(NeonField())
+
+                    NeonButton(title: model.isReading ? "ĐANG GIẢI MÃ..." : "ĐỌC FILE VÀ LẤY THÔNG TIN",
+                               symbol: "square.stack.3d.up.fill",
+                               enabled: !model.busy && model.rawFile != nil) {
                         dismissKeyboard()
                         model.read()
                     }
-                    HStack(spacing: 7) {
-                        if model.busy {
-                            ProgressView().tint(Theme.accent)
-                        }
-                        Image(systemName: model.loaded == nil ? "info.circle" : "checkmark.seal.fill")
-                            .foregroundStyle(model.loaded == nil ? Theme.muted : .green)
-                        Text(model.status)
-                            .font(.system(size: 11))
-                            .foregroundStyle(Theme.muted)
-                    }
-                }.modifier(GlowCard())
 
-                VStack(alignment: .leading, spacing: 15) {
-                    fieldLabel("03  BUNDLE ID HIỆN TẠI")
+                    LabelStep(step: "03", title: "BUNDLE ID GỐC")
                     Menu {
                         ForEach(model.loaded?.bundles ?? [], id: \.self) { bundle in
                             Button(bundle) { model.selectedOldID = bundle }
                         }
                     } label: {
-                        HStack(spacing: 8) {
-                            Text(model.selectedOldID.isEmpty ? "Đọc file trước" : model.selectedOldID)
-                                .font(.system(size: 13, design: .monospaced))
+                        HStack {
+                            Text(model.selectedOldID.isEmpty ? "Đọc file trước để chọn Bundle ID" : model.selectedOldID)
                                 .lineLimit(1).truncationMode(.middle)
-                                .foregroundStyle(model.loaded == nil ? Theme.muted : .white)
+                                .foregroundStyle(model.loaded == nil ? NS.muted : .white)
                             Spacer()
                             Image(systemName: "chevron.up.chevron.down")
-                                .font(.system(size: 12))
-                                .foregroundStyle(Theme.accent)
+                                .foregroundStyle(NS.bright)
                         }
-                        .modifier(InputStyle())
-                    }
-                    .disabled(model.busy || model.loaded == nil)
-
-                    fieldLabel("04  BUNDLE ID MỚI")
-                    TextField("Ví dụ: com.kgvn.nsmod", text: $model.newID)
-                        .focused($bundleFocused)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .submitLabel(.done)
-                        .onSubmit(dismissKeyboard)
                         .font(.system(size: 13, design: .monospaced))
-                        .foregroundStyle(.white)
-                        .modifier(InputStyle())
+                        .modifier(NeonField())
+                    }
+                    .disabled(model.loaded == nil || model.busy)
 
-                    Text("Chỉ đổi thư mục Bundle ID đầu tiên. Giữ nguyên Documents/, Library/, đường dẫn và dữ liệu.")
+                    LabelStep(step: "04", title: "BUNDLE ID MỚI")
+                    HStack(spacing: 9) {
+                        Image(systemName: "shippingbox.fill").foregroundStyle(NS.muted)
+                        TextField("VD: com.nsmod.app", text: $model.newID)
+                            .focused($focusedField, equals: .bundle)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .submitLabel(.done)
+                            .onSubmit(dismissKeyboard)
+                            .font(.system(size: 13, design: .monospaced))
+                            .foregroundStyle(.white)
+                    }
+                    .modifier(NeonField())
+                    Text("Chỉ đổi Bundle ID đã chọn. Giữ nguyên Documents/, Library/ và tất cả nội dung patch.")
                         .font(.system(size: 11))
-                        .foregroundStyle(Theme.muted)
+                        .foregroundStyle(NS.muted)
                         .fixedSize(horizontal: false, vertical: true)
 
-                    PrimaryButton(text: "XUẤT FILE .3105 MỚI", icon: "square.and.arrow.up.fill",
-                                  disabled: model.busy || model.loaded == nil || model.newID.isEmpty) {
+                    NeonButton(title: model.isExporting ? "ĐANG MÃ HÓA..." : "XUẤT FILE MỚI • PASS NSMOD",
+                               symbol: "arrow.triangle.2.circlepath",
+                               enabled: !model.busy && model.loaded != nil &&
+                                        PatchCodec.validBundleID(model.newID.trimmingCharacters(in: .whitespacesAndNewlines)) &&
+                                        model.newID != model.selectedOldID) {
                         dismissKeyboard()
                         model.prepareExport()
                     }
-                    HStack {
-                        Image(systemName: "lock.shield.fill")
-                        Text("Mật khẩu file xuất: nsmod")
+                    HStack(spacing: 7) {
+                        if model.busy { ProgressView().tint(NS.bright) }
+                        Image(systemName: "checkmark.shield.fill").foregroundStyle(NS.bright)
+                        Text(model.status)
+                            .font(.system(size: 11))
+                            .foregroundStyle(NS.muted)
+                            .lineLimit(3)
                     }
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(Theme.accent)
-                }.modifier(GlowCard())
+                }
+                .modifier(NeonPanel())
+                .padding(.bottom, 12)
             }
-            .padding(.horizontal, 16)
-            .padding(.bottom, 24)
-            .frame(maxWidth: 540)
+            .padding(.horizontal, 15)
+            .frame(maxWidth: 590)
+            .frame(maxWidth: .infinity)
         }
         .scrollIndicators(.hidden)
         .scrollDismissesKeyboard(.interactively)
-        .background(Color.clear.contentShape(Rectangle()).onTapGesture(perform: dismissKeyboard))
+        .simultaneousGesture(TapGesture().onEnded { dismissKeyboard() })
         .toolbar {
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()
-                Button("Xong", action: dismissKeyboard)
-                    .fontWeight(.semibold)
+                Button("Xong", action: dismissKeyboard).fontWeight(.bold)
             }
         }
-        .sheet(isPresented: $showImporter) {
-            PatchFilePicker(
-                onSelect: { url in
-                    showImporter = false
-                    model.importFile(url)
-                },
-                onCancel: { showImporter = false }
-            )
+        .sheet(isPresented: $showPicker) {
+            PatchFilePicker(onSelect: { url in
+                showPicker = false
+                model.importFile(url)
+            }, onCancel: { showPicker = false })
             .ignoresSafeArea()
         }
         .fileExporter(isPresented: $model.showExporter, document: model.exportDocument,
@@ -476,128 +453,148 @@ private struct ConverterScreen: View {
             set: { if !$0 { model.errorMessage = nil } }
         )) {
             Button("Đóng", role: .cancel) { model.errorMessage = nil }
-        } message: {
-            Text(model.errorMessage ?? "")
-        }
-    }
-
-    private func fieldLabel(_ text: String) -> some View {
-        Text(text)
-            .font(.system(size: 10, weight: .bold))
-            .tracking(1.1)
-            .foregroundStyle(Theme.muted)
+        } message: { Text(model.errorMessage ?? "") }
     }
 }
 
-private struct InputStyle: ViewModifier {
-    func body(content: Content) -> some View {
-        content
-            .padding(.horizontal, 14)
-            .frame(height: 48)
-            .background(Theme.background.opacity(0.8), in: RoundedRectangle(cornerRadius: 13))
-            .overlay(RoundedRectangle(cornerRadius: 13).stroke(Theme.border))
-    }
-}
+private struct HomeView: View {
+    let goConvert: () -> Void
+    @Environment(\.openURL) private var openURL
 
-private struct SettingsScreen: View {
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                Header(subtitle: "ABOUT THE APP").padding(.top, 12)
-                VStack(spacing: 14) {
-                    Image(systemName: "bolt.shield.fill")
-                        .font(.system(size: 52))
-                        .foregroundStyle(Theme.accent)
-                        .padding(.top, 14)
-                    Text("NSMOD")
-                        .font(.system(size: 30, weight: .black, design: .rounded))
+            VStack(alignment: .leading, spacing: 18) {
+                BrandHeader()
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("NSMOD • 3105 CONVERTER")
+                        .font(.system(size: 11, weight: .heavy))
+                        .tracking(1.5)
+                        .foregroundStyle(NS.bright)
+                    Text("Chuyển đổi Bundle ID\nnhanh chóng, chính xác.")
+                        .font(.system(size: 25, weight: .black, design: .rounded))
                         .foregroundStyle(.white)
-                    Text("Được phát triển bởi NSMOD")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(.white)
-                    Text("Một công cụ nhỏ, một trải nghiệm gọn gàng.")
-                        .font(.system(size: 12))
-                        .foregroundStyle(Theme.muted)
-                        .multilineTextAlignment(.center)
-                    Divider().overlay(Theme.border)
-                    HStack {
-                        Text("Phiên bản").foregroundStyle(Theme.muted)
-                        Spacer()
-                        Text("1.0.0").foregroundStyle(.white)
-                    }.font(.system(size: 13))
+                    Text("Giữ nguyên dữ liệu và đường dẫn của patch. File mới có mật khẩu nsmod.")
+                        .font(.system(size: 13))
+                        .foregroundStyle(NS.muted)
+                    NeonButton(title: "BẮT ĐẦU CHUYỂN ĐỔI", symbol: "arrow.left.arrow.right",
+                               action: goConvert)
                 }
-                .frame(maxWidth: .infinity)
-                .modifier(GlowCard())
-                Spacer()
+                .modifier(NeonPanel())
+
+                Text("KHÁM PHÁ NSMOD")
+                    .font(.system(size: 11, weight: .heavy))
+                    .tracking(1.6)
+                    .foregroundStyle(NS.bright)
+                    .padding(.leading, 5)
+                resource("globe", "WEB CRACK", "nsmod.github.io/nsmodcrack") { openURL(Links.crack) }
+                resource("paperplane.fill", "TELEGRAM", "@sonchoigame23") { openURL(Links.telegram) }
+                resource("play.rectangle.fill", "TIKTOK", "@pettersiuto") { openURL(Links.tikTok) }
             }
-            .padding(.horizontal, 19)
+            .padding(.horizontal, 15)
+            .frame(maxWidth: 590)
+            .frame(maxWidth: .infinity)
         }
         .scrollIndicators(.hidden)
     }
+
+    private func resource(_ symbol: String, _ title: String, _ subtitle: String,
+                          action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                Image(systemName: symbol)
+                    .font(.system(size: 22))
+                    .foregroundStyle(NS.bright)
+                    .frame(width: 44, height: 44)
+                    .background(NS.purple.opacity(0.16), in: RoundedRectangle(cornerRadius: 13))
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title).font(.system(size: 14, weight: .heavy)).foregroundStyle(.white)
+                    Text(subtitle).font(.system(size: 11)).foregroundStyle(NS.muted)
+                }
+                Spacer()
+                Image(systemName: "arrow.up.right")
+                    .foregroundStyle(NS.bright)
+            }
+            .modifier(NeonPanel())
+        }
+        .buttonStyle(.plain)
+    }
 }
 
-private struct WelcomePopup: View {
+private struct AboutView: View {
+    var body: some View {
+        VStack(spacing: 20) {
+            Spacer(minLength: 40)
+            Image("NSMODLogo")
+                .resizable().aspectRatio(contentMode: .fill)
+                .frame(width: 108, height: 108).clipped()
+                .clipShape(RoundedRectangle(cornerRadius: 25))
+                .overlay(RoundedRectangle(cornerRadius: 25).stroke(NS.bright, lineWidth: 1))
+                .shadow(color: NS.purple.opacity(0.60), radius: 18)
+            Text("NSMOD")
+                .font(.system(size: 33, weight: .black, design: .serif))
+                .foregroundStyle(.white)
+            Text("Được phát triển bởi NSMOD")
+                .font(.system(size: 16, weight: .bold))
+                .foregroundStyle(NS.bright)
+            Text("Một công cụ nhỏ, một trải nghiệm gọn gàng.")
+                .font(.system(size: 12))
+                .foregroundStyle(NS.muted)
+                .multilineTextAlignment(.center)
+            Text("Phiên bản 1.3.0")
+                .font(.system(size: 11))
+                .foregroundStyle(NS.muted)
+            Spacer()
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
+private struct WelcomeView: View {
     let canClose: Bool
     let openTelegram: () -> Void
-    let dismiss: () -> Void
-    @State private var float = false
+    let close: () -> Void
+    @State private var floating = false
 
     var body: some View {
-        VStack(spacing: 17) {
-            ZStack {
-                Circle().fill(Theme.accent.opacity(0.11)).frame(width: 90, height: 90)
-                    .scaleEffect(float ? 1.15 : 0.92)
-                Image(systemName: "paperplane.fill")
-                    .font(.system(size: 39, weight: .medium))
-                    .foregroundStyle(Theme.accent)
-                    .offset(y: float ? -3 : 3)
-            }
-            .frame(height: 92)
+        VStack(spacing: 16) {
+            Image("NSMODLogo")
+                .resizable().aspectRatio(contentMode: .fill)
+                .frame(width: 92, height: 92).clipped()
+                .clipShape(RoundedRectangle(cornerRadius: 24))
+                .overlay(RoundedRectangle(cornerRadius: 24).stroke(NS.bright, lineWidth: 1.5))
+                .shadow(color: NS.purple.opacity(0.6), radius: 18)
+                .offset(y: floating ? -4 : 4)
             Text("NSMOD COMMUNITY")
-                .font(.system(size: 20, weight: .heavy, design: .rounded))
-                .tracking(0.8)
+                .font(.system(size: 20, weight: .black, design: .serif))
                 .foregroundStyle(.white)
-            Text("Tham gia kênh Telegram chính thức để nhận cập nhật, thông báo và các bản phát hành mới.")
+            Text("Tham gia kênh Telegram chính thức để nhận thông báo, cập nhật và phiên bản mới.")
                 .font(.system(size: 13))
-                .foregroundStyle(Theme.muted)
+                .foregroundStyle(NS.muted)
                 .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
-            PrimaryButton(text: "VÀO KÊNH TELEGRAM", icon: "paperplane.fill",
-                          action: openTelegram)
+            NeonButton(title: "VÀO KÊNH TELEGRAM", symbol: "paperplane.fill", action: openTelegram)
             if canClose {
-                Button(action: dismiss) {
+                Button(action: close) {
                     Text("ĐÓNG")
-                        .font(.system(size: 14, weight: .bold))
+                        .font(.system(size: 14, weight: .heavy))
                         .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 49)
-                        .background(Theme.background, in: RoundedRectangle(cornerRadius: 15))
-                        .overlay(RoundedRectangle(cornerRadius: 15).stroke(Theme.border))
+                        .frame(maxWidth: .infinity).frame(height: 48)
+                        .background(NS.field, in: RoundedRectangle(cornerRadius: 15))
+                        .overlay(RoundedRectangle(cornerRadius: 15)
+                            .stroke(NS.edge.opacity(0.7), lineWidth: 1))
                 }
-                .buttonStyle(TapScale())
+                .buttonStyle(.plain)
                 .transition(.opacity.combined(with: .move(edge: .bottom)))
             }
-            Text("NSMOD  •  OFFICIAL")
+            Text("NSMOD • OFFICIAL")
                 .font(.system(size: 10, weight: .bold))
-                .tracking(1.7)
-                .foregroundStyle(Theme.muted)
+                .tracking(1.4)
+                .foregroundStyle(NS.muted)
         }
-        .padding(24)
-        .frame(maxWidth: 420)
-        .background(
-            RoundedRectangle(cornerRadius: 27, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [Color(red: 0.10, green: 0.16, blue: 0.26), Theme.panel],
-                        startPoint: .topLeading, endPoint: .bottomTrailing
-                    )
-                )
-                .overlay(RoundedRectangle(cornerRadius: 27).stroke(Theme.accent.opacity(0.24)))
-        )
-        .shadow(color: Theme.accent.opacity(0.12), radius: 35, y: 15)
+        .modifier(NeonPanel())
+        .frame(maxWidth: 430)
         .onAppear {
-            withAnimation(.easeInOut(duration: 2.2).repeatForever(autoreverses: true)) {
-                float = true
+            withAnimation(.easeInOut(duration: 2).repeatForever(autoreverses: true)) {
+                floating = true
             }
         }
     }

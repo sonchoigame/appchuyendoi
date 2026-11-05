@@ -12,6 +12,11 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install XcodeGen
         run: brew install xcodegen
+      - name: Prepare NSMOD AppIcon asset
+        run: |
+          set -euo pipefail
+          sips -s format png NSMOD3105/Assets.xcassets/AppIcon.appiconset/icon-source.jpg \
+            --out NSMOD3105/Assets.xcassets/AppIcon.appiconset/AppIcon.png
       - name: Generate Xcode project
         run: xcodegen generate
       - name: Smoke-test 3105 schema v9 conversion
