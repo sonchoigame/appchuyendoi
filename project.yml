@@ -7,7 +7,6 @@ settings:
   base:
     SWIFT_VERSION: "5.0"
     IPHONEOS_DEPLOYMENT_TARGET: "16.0"
-    TARGETED_DEVICE_FAMILY: "1"
     SUPPORTS_MACCATALYST: NO
 targets:
   NSMOD3105:
@@ -17,9 +16,29 @@ targets:
       - path: NSMOD3105
     info:
       path: NSMOD3105/Info.plist
+      properties:
+        CFBundleDevelopmentRegion: vi
+        CFBundleDisplayName: NSMOD
+        UIUserInterfaceStyle: Dark
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        UTImportedTypeDeclarations:
+          - UTTypeIdentifier: com.nsmod.patch3105
+            UTTypeDescription: 3105 Patch File
+            UTTypeConformsTo:
+              - public.data
+            UTTypeTagSpecification:
+              public.filename-extension:
+                - "3105"
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: 3105 Patch
+            LSHandlerRank: Alternate
+            LSItemContentTypes:
+              - com.nsmod.patch3105
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.nsmod.converter
         GENERATE_INFOPLIST_FILE: NO
         CODE_SIGN_STYLE: Automatic
+        TARGETED_DEVICE_FAMILY: "1"
         ENABLE_USER_SCRIPT_SANDBOXING: NO
