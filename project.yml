@@ -19,9 +19,10 @@ targets:
       properties:
         CFBundleDevelopmentRegion: vi
         CFBundleDisplayName: NSMOD
-        CFBundleShortVersionString: "1.1.0"
-        CFBundleVersion: "2"
+        CFBundleShortVersionString: "1.2.0"
+        CFBundleVersion: "3"
         UIUserInterfaceStyle: Dark
+        UILaunchStoryboardName: LaunchScreen
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
         UTImportedTypeDeclarations:

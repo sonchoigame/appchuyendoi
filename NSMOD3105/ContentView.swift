@@ -83,9 +83,9 @@ private enum Page: String, CaseIterable, Identifiable {
 struct ContentView: View {
     @StateObject private var model = ConverterModel()
     @AppStorage("nsmod_has_opened_telegram") private var openedTelegram = false
-    @Environment(\.scenePhase) private var phase
     @State private var page: Page = .home
     @State private var showWelcome = false
+    @State private var welcomeShownThisLaunch = false
 
     var body: some View {
         ZStack {
@@ -158,13 +158,12 @@ struct ContentView: View {
             }
         }
         .onAppear {
-            withAnimation(.spring(response: 0.48, dampingFraction: 0.85)) { showWelcome = true }
-        }
-        .onChange(of: phase) { value in
-            if value == .active {
-                withAnimation(.spring(response: 0.48, dampingFraction: 0.85)) {
-                    showWelcome = true
-                }
+            // Show only on a cold app launch, never after switching to Telegram,
+            // returning from Files, unlocking the phone, or app multitasking.
+            guard !welcomeShownThisLaunch else { return }
+            welcomeShownThisLaunch = true
+            withAnimation(.spring(response: 0.48, dampingFraction: 0.85)) {
+                showWelcome = true
             }
         }
     }
