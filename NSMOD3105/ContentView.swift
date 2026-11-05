@@ -466,7 +466,7 @@ private struct ConverterScreen: View {
                 model.errorMessage = error.localizedDescription
             }
         }
-        .fileExporter(isPresented: $showExporter, document: $document,
+        .fileExporter(isPresented: $showExporter, document: document,
                       contentType: .patch3105, defaultFilename: model.outputName) { result in
             if case .failure(let error) = result {
                 model.errorMessage = error.localizedDescription
