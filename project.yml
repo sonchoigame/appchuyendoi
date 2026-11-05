@@ -19,6 +19,8 @@ targets:
       properties:
         CFBundleDevelopmentRegion: vi
         CFBundleDisplayName: NSMOD
+        CFBundleShortVersionString: "1.1.0"
+        CFBundleVersion: "2"
         UIUserInterfaceStyle: Dark
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
